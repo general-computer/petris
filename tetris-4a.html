@@ -40,7 +40,7 @@
       const ctx = canvas.getContext("2d");
       const scale = 20;
       const scoreDisplay = document.getElementById("score");
-      
+
       // Initialize score
       let score = 0;
 
@@ -51,8 +51,8 @@
         scoreDisplay.textContent = "Score: " + score;
       }
 
-// Tetromino shapes
-const shapes = [
+      // Tetromino shapes
+      const shapes = [
         [
           [1, 1, 1],
           [0, 1, 0],
@@ -110,7 +110,6 @@ const shapes = [
 
       // Rotate tetromino
       function rotate() {
-
         const newTetromino = tetromino[0]
           .map((_, i) => tetromino.map((row) => row[i]))
           .reverse();
@@ -136,6 +135,10 @@ const shapes = [
             y--;
           }
         }
+        function resetScore() {
+          score = 0;
+          scoreDisplay.textContent = "Score: " + score;
+        }
 
         if (linesCleared) {
           // Update score based on lines cleared
@@ -145,7 +148,11 @@ const shapes = [
 
       // Game over condition
       function isGameOver() {
-        return !canMove(position);
+        if (!canMove(position)) {
+          resetScore(); // Reset the score when the game is over
+          return true;
+        }
+        return false;
       }
 
       // Draw the game state
@@ -204,7 +211,7 @@ const shapes = [
         if (e.code === "ArrowDown") newPosition.y++;
         if (canMove(newPosition)) {
           position = newPosition;
-        }  
+        }
         if (e.code === "ArrowUp") {
           rotate();
         }
