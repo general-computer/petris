@@ -1,268 +1,183 @@
-const gameBoard = document.querySelector('#game-board');
+// Tetris main logic
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scale = 20;
+const scoreDisplay = document.getElementById("score");
 
-// Create the game pieces
-const pieces = [
-    {
-        name: 'I',
-        color: 'red',
-        shape: [
-            [0, 0, 0, 0],
-            [1, 1, 1, 1],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ]
-    },
-    {
-        name: 'J',
-        color: 'blue',
-        shape: [
-            [1, 0, 0],
-            [1, 1, 1],
-            [0, 0, 0]
-        ]
-    },
-    {
-        name: 'L',
-        color: 'orange',
-        shape: [
-            [0, 0, 1],
-            [1, 1, 1],
-            [0, 0, 0]
-        ]
-    },
-    {
-        name: 'O',
-        color: 'yellow',
-        shape: [
-            [1, 1],
-            [1, 1]
-        ]
-    },
-    {
-        name: 'S',
-        color: 'green',
-        shape: [
-            [0, 1, 1],
-            [1, 1, 0],
-            [0, 0, 0]
-        ]
-    },
-    {
-        name: 'T',
-        color: 'purple',
-        shape: [
-            [0, 1, 0],
-            [1, 1, 1],
-            [0, 0, 0]
-        ]
-    },
-    {
-        name:
-        'Z',
-        color: 'pink',
-        shape: [
-            [1, 1, 0],
-            [0, 1, 1],
-            [0, 0, 0]
-        ]
+// Initialize score
+let score = 0;
+// Update score function
+function updateScore(linesCleared) {
+  const pointsPerLine = 100;
+  score += linesCleared * pointsPerLine;
+  scoreDisplay.textContent = "Score: " + score;
+}
+
+// Tetromino shapes
+const shapes = [
+    { shape: [
+      [1, 1, 1],
+      [0, 1, 0],
+    ], color: "purple" }, // T
+    { shape: [
+      [0, 1, 1],
+      [1, 1, 0],
+    ], color: "red" }, // Z
+    { shape: [
+      [1, 1, 0],
+      [0, 1, 1],
+    ], color: "green" }, // S
+    { shape: [
+      [1, 1],
+      [1, 1],
+    ], color: "yellow" }, // O
+    { shape: [[1, 1, 1, 1]], color: "cyan" }, // I
+    { shape: [
+      [1, 1, 1],
+      [1, 0, 0],
+    ], color: "orange" }, // L
+    { shape: [
+      [1, 1, 1],
+      [0, 0, 1],
+    ], color: "blue" }, // J
+  ];
+
+// Initialize game state
+let grid = Array.from({ length: 20 }, () => Array(10).fill(0));
+let tetromino, position;
+
+// Spawn a new tetromino
+function spawn() {
+  tetromino = shapes[Math.floor(Math.random() * shapes.length)];
+  position = { x: Math.floor(grid[0].length / 2) - 1, y: 0 };
+}
+
+// Check if tetromino can be moved to a new position
+function canMove(newPosition, newTetromino = tetromino.shape) {
+  for (let y = 0; y < newTetromino.length; y++) {
+    for (let x = 0; x < newTetromino[y].length; x++) {
+      if (
+        newTetromino[y][x] &&
+        (newPosition.y + y >= grid.length ||
+          newPosition.x + x < 0 ||
+          newPosition.x + x >= grid[0].length ||
+          grid[newPosition.y + y][newPosition.x + x])
+      ) {
+        return false;
+      }
     }
-];
+  }
+  return true;
+}
 
-// Define the current piece
-let currentPiece = {
-    name: '',
-    color: '',
-    shape: []
-};
+ // Rotate tetromino
+ function rotate() {
+    const newTetromino = tetromino.shape[0]
+      .map((_, i) => tetromino.shape.map((row) => row[i]))
+      .reverse();
+    if (canMove(position, newTetromino)) tetromino.shape = newTetromino;
+  }
 
-// Define the current position of the piece
-let currentX = 0;
-let currentY = 0;
+// Merge tetromino with grid and check for full lines
+function merge() {
+  for (let y = 0; y < tetromino.shape.length; y++) {
+    for (let x = 0; x < tetromino.shape[y].length; x++) {
+      if (tetromino.shape[y][x]) {
+        grid[position.y + y][position.x + x] = 1;
+      }
+    }
+  }
+  let linesCleared = 0;
+  for (let y = grid.length - 1; y >= 0; ) {
+    if (grid[y].every((cell) => cell)) {
+      grid.splice(y, 1);
+      grid.unshift(Array(10).fill(0));
+      linesCleared++;
+    } else {
+      y--;
+    }
+  }
+  if (linesCleared) {
+    // Update score based on lines cleared
+    updateScore(linesCleared);
+  }
+}
 
-// Define the game board state
-const board = [];
+function resetScore() {
+    score = 0;
+    scoreDisplay.textContent = "Score: " + score;
+}
 
-// Create the board array
-function createBoard() {
-    for (let i = 0; i < 20; i++) {
-        board[i] = [];
-        for (let j = 0; j < 10; j++) {
-            board[i][j] = 0;
+// Game over condition
+function isGameOver() {
+  if (!canMove(position)) {
+    resetScore(); // Reset the score when the game is over
+    return true;
+  }
+  return false;
+}
+
+// Draw the game state
+function draw() {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  function drawCells(cells, offset = { x: 0, y: 0 }, color = "white") {
+    for (let y = 0; y < cells.length; y++) {
+      for (let x = 0; x < cells[y].length; x++) {
+        if (cells[y][x]) {
+          ctx.fillStyle = color;
+          ctx.fillRect(
+            (x + offset.x) * scale,
+            (y + offset.y) * scale,
+            scale,
+            scale
+          );
+          ctx.strokeStyle = "#000";
+          ctx.strokeRect(
+            (x + offset.x) * scale,
+            (y + offset.y) * scale,
+            scale,
+            scale
+          );
         }
+      }
     }
-}
+  }
 
-// Create a new piece
-function newPiece() {
-    const randomPiece = pieces[Math.floor(Math.random() * pieces.length)];
-    currentPiece.name = randomPiece.name;
-    currentPiece.color = randomPiece.color;
-    currentPiece.shape = randomPiece.shape;
-    currentX = 3;
-    currentY = 0;
+  drawCells(grid);
+  drawCells(tetromino.shape, position, tetromino.color);
 }
-
-// Draw the current piece on the board
-function drawPiece() {
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            if (currentPiece.shape[y][x]) {
-                const block = document.createElement('div');
-                block.className = 'block';
-                block.style.backgroundColor = currentPiece.color;
-                block.style.top = (currentY + y) * 30 + 'px';
-                block.style.left = (currentX + x) * 30 + 'px';
-                gameBoard.appendChild(block);
-            }
-        }
-    }
-}
-
-// Remove the current piece from the board
-function removePiece() {
-    const blocks = document.querySelectorAll('.block');
-    blocks.forEach((block) => {
-        block.parentNode.removeChild(block);
-    });
-}
-
-// Move the piece down
-function moveDown() {
-    removePiece();
-    currentY++;
-    drawPiece();
-}
-
-// Move the piece left
-function moveLeft() {
-    removePiece();
-    currentX--;
-    drawPiece();
-}
-
-// Move the piece right
-function moveRight() {
-    removePiece();
-    currentX++;
-    drawPiece();
-}
-
-// Rotate the piece
-function rotatePiece() {
-    const rotatedPiece = [];
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        rotatedPiece[y] = [];
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            rotatedPiece[y][x] = currentPiece.shape[currentPiece.shape.length - 1 - x][y];
-        }
-    }
-    currentPiece.shape = rotatedPiece;
-    removePiece();
-    drawPiece();
-}
-
-// Check for collisions
-function checkCollisions() {
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            if (currentPiece.shape[y][x]) {
-                const newX = currentX + x;
-                const newY = currentY + y;
-                if (newX < 0 || newX >= 10 || newY >= 20 || board[newY][newX]) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-function lockPiece() {
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            if (		currentPiece.shape[y][x]) {
-                const newX = currentX + x;
-                const newY = currentY + y;
-                board[newY][newX] = currentPiece.color;
-            }
-        }
-    }
-}
-
-// Clear completed rows
-function clearRows() {
-    for (let y = board.length - 1; y >= 0; y--) {
-        let rowFilled = true;
-        for (let x = 0; x < board[y].length; x++) {
-            if (board[y][x] === 0) {
-                rowFilled = false;
-                break;
-            }
-        }
-        if (rowFilled) {
-            for (let i = y; i > 0; i--) {
-                for (let j = 0; j < board[i].length; j++) {
-                    board[i][j] = board[i - 1][j];
-                }
-            }
-            y++;
-            score += 10;
-            scoreDisplay.innerHTML = score;
-        }
-    }
-}
-
-// Draw the board
-function drawBoard() {
-    for (let y = 0; y < board.length; y++) {
-        for (let x = 0; x < board[y].length; x++) {
-            if (board[y][x]) {
-                const block = document.createElement('div');
-                block.className = 'block';
-                block.style.backgroundColor = board[y][x];
-                block.style.top = y * 30 + 'px';
-                block.style.left = x * 30 + 'px';
-                gameBoard.appendChild(block);
-            }
-        }
-    }
-}
-
-// Handle key presses
-document.addEventListener('keydown', (event) => {
-    if (event.code === 'ArrowDown') {
-        moveDown();
-    }
-    if (event.code === 'ArrowLeft') {
-        moveLeft();
-    }
-    if (event.code === 'ArrowRight') {
-        moveRight();
-    }
-    if (event.code === 'ArrowUp') {
-        rotatePiece();
-    }
-});
-
-// Start the game
-createBoard();
-newPiece();
-drawPiece();
 
 // Game loop
-let lastTime = 0;
-let score = 0;
-const scoreDisplay = document.getElementById('score');
-function gameLoop(timestamp) {
-    const deltaTime = timestamp - lastTime;
-    lastTime = timestamp;
-    if (!checkCollisions()) {
-        moveDown();
-    } else {
-        lockPiece();
-        clearRows();
-        newPiece();
+function update() {
+  if (canMove({ x: position.x, y: position.y + 1 })) {
+    position.y++;
+  } else {
+    merge();
+    spawn();
+    if (isGameOver()) {
+      grid = Array.from({ length: 20 }, () => Array(10).fill(0));
     }
-    drawBoard();
-    requestAnimationFrame(gameLoop);
+  }
+
+  draw();
+  setTimeout(update, 1000 / 2);
 }
-requestAnimationFrame(gameLoop);
+
+// Keyboard controls
+document.addEventListener("keydown", (e) => {
+  const newPosition = { x: position.x, y: position.y };
+  if (e.code === "ArrowLeft") newPosition.x--;
+  if (e.code === "ArrowRight") newPosition.x++;
+  if (e.code === "ArrowDown") newPosition.y++;
+  if (canMove(newPosition)) {
+    position = newPosition;
+  }
+  if (e.code === "ArrowUp") {
+    rotate();
+  }
+});
+// Start the game
+spawn();
+update();
