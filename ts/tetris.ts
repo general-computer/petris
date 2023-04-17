@@ -9,10 +9,39 @@ interface Tetromino {
 }
 
 class Game {
-    // Implement game logic, including methods for moving, rotating, and managing tetrominoes
+    // Add properties, such as grid, currentTetromino, etc.
+
+    canMove(newPosition: Point): boolean {
+        // Implement collision detection logic
+    }
+
+    move(dx: number, dy: number): void {
+        // Implement movement logic
+    }
+
+    rotate(): void {
+        // Implement rotation logic
+    }
 }
 
 class Renderer {
-    // Implement rendering logic, including drawing tetrominoes on the canvas
+    // Add properties, such as canvas, context, etc.
+
+    draw(): void {
+        // Implement drawing logic, including drawing the grid and the current tetromino
+    }
+}
+const game = new Game();
+const renderer = new Renderer(/* Pass the canvas element */);
+
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+    // Handle input events and call appropriate game methods
+});
+
+function gameLoop() {
+    // Update game state
+    renderer.draw();
+    requestAnimationFrame(gameLoop);
 }
 
+gameLoop();
