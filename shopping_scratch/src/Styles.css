@@ -1,0 +1,50 @@
+/* styles.css */
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.SearchBar {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.SearchBar input {
+  padding: 10px;
+  margin-right: 10px;
+}
+
+.SearchBar button {
+  padding: 10px;
+}
+
+.RecipeList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.Recipe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.Cart {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.Cart ul {
+  list-style-type: none;
+  padding: 0;
+}
+
