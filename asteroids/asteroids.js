@@ -7,9 +7,12 @@ const turnSpeed = 360;
 const thrustSpeed = 5;
 const friction = 0.7;
 const asteroidAmount = 5;
-const asteroidSpeed = 50;
+const asteroidSpeed = 20;
 const asteroidSize = 100;
 const asteroidJaggedness = 0.4;
+const bulletSpeed = 400;
+const bulletMaxAge = 2;
+
 
 // Game objects
 let ship = {
@@ -25,6 +28,8 @@ let ship = {
 
 let asteroids = [];
 createAsteroids();
+
+let bullets = [];
 
 // Helper functions
 function randomFloat(min, max) {
@@ -82,6 +87,20 @@ function rotate(angle) {
   ctx.translate(-shipSize / 2, -shipSize / 2);
 }
 
+function circleCollision(obj1, obj2) {
+  return distanceBetween(obj1.x, obj1.y, obj2.x, obj2.y) < obj1.radius + obj2.radius;
+}
+
+function createBullet(x, y, angle) {
+  return {
+    x: x,
+    y: y,
+    xv: bulletSpeed * Math.cos(angle),
+    yv: -bulletSpeed * Math.sin(angle),
+    age: 0,
+  };
+}
+
 // Input handling
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
@@ -93,6 +112,9 @@ document.addEventListener("keydown", (e) => {
       break;
     case "ArrowRight":
       ship.rotating = "right";
+      break;
+    case " ":
+      shootBullet();
       break;
   }
 });
@@ -109,15 +131,22 @@ document.addEventListener("keyup", (e) => {
   }
 });
 
+function shootBullet() {
+  bullets.push(createBullet(ship.x, ship.y, ship.angle));
+}
+
 // Main game loop
 function gameLoop() {
   // Update
   updateShip();
+  updateBullets();
   updateAsteroids();
+  checkBulletAsteroidCollisions();
 
   // Draw
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawShip();
+  drawBullets();
   drawAsteroids();
 
   requestAnimationFrame(gameLoop);
@@ -190,6 +219,45 @@ function drawAsteroids() {
 
     ctx.closePath();
     ctx.stroke();
+  }
+}
+
+function updateBullets() {
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    let bullet = bullets[i];
+    bullet.x += bullet.xv * (1 / 60);
+    bullet.y += bullet.yv * (1 / 60);
+    bullet.age += 1 / 60;
+
+    if (bullet.age > bulletMaxAge) {
+      bullets.splice(i, 1);
+    } else {
+      wrapAround(bullet, 0);
+    }
+  }
+}
+
+function drawBullets() {
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+
+  for (let bullet of bullets) {
+    ctx.beginPath();
+    ctx.arc(bullet.x, bullet.y, 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function checkBulletAsteroidCollisions() {
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    for (let j = asteroids.length - 1; j >= 0; j--) {
+      if (circleCollision(bullets[i], asteroids[j])) {
+        // Remove the bullet and asteroid upon collision
+        bullets.splice(i, 1);
+        asteroids.splice(j, 1);
+        break;
+      }
+    }
   }
 }
 
